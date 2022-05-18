@@ -254,6 +254,9 @@ jest.mock('amazon-cognito-identity-js/lib/CognitoUser', () => {
 	CognitoUser.prototype.forgetDevice = callback => {
 		callback.onSuccess('success');
 	};
+	CognitoUser.prototype.forgetSpecificDevice = (deviceKey, callback) => {
+		callback.onSuccess('success');
+	};
 	CognitoUser.prototype.listDevices = (limit, paginationToken, callback) => {
 		callback.onSuccess('success');
 	};
@@ -4206,6 +4209,44 @@ describe('auth unit test', () => {
 				);
 
 			await auth.forgetDevice().then(res => {
+				expect(spyOnCognito).toBeCalled();
+			});
+
+			spyon.mockClear();
+			spyon2.mockClear();
+			spyOnCognito.mockClear();
+		});
+
+		test('forget specific device happy path', async () => {
+			const auth = new Auth(authOptions);
+
+			const spyon = jest
+				.spyOn(CognitoUserSession.prototype, 'getAccessToken')
+				.mockImplementationOnce(() => {
+					return new CognitoAccessToken({ AccessToken: 'accessToken' });
+				});
+
+			const spyon2 = jest
+				.spyOn(CognitoAccessToken.prototype, 'decodePayload')
+				.mockImplementation(() => {
+					return { scope: '' };
+				});
+
+			const spyOnCognito = jest
+				.spyOn(CognitoUser.prototype, 'forgetSpecificDevice')
+				.mockImplementationOnce(
+					(
+						deviceKey: string,
+						obj: {
+							onSuccess: (success: string) => void;
+							onFailure: (err: any) => void;
+						}
+					) => {
+						obj.onSuccess('SUCCESS');
+					}
+				);
+
+			await auth.forgetSpecificDevice('deviceKey').then(res => {
 				expect(spyOnCognito).toBeCalled();
 			});
 
