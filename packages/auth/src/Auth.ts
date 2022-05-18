@@ -2687,6 +2687,35 @@ export class AuthClass {
 		});
 	}
 
+	public async forgetSpecificDevice(deviceKey: string): Promise<void> {
+		let currUser;
+
+		try {
+			currUser = await this.currentUserPoolUser();
+		} catch (error) {
+			logger.debug('The user is not authenticated by the error', error);
+			return Promise.reject('The user is not authenticated');
+		}
+
+		currUser.getCachedDeviceKeyAndPassword();
+		return new Promise((res, rej) => {
+			currUser.forgetSpecificDevice(deviceKey, {
+				onSuccess: data => {
+					res(data);
+				},
+				onFailure: err => {
+					if (err.code === 'InvalidParameterException') {
+						rej(new AuthError(AuthErrorTypes.DeviceConfig));
+					} else if (err.code === 'NetworkError') {
+						rej(new AuthError(AuthErrorTypes.NetworkError));
+					} else {
+						rej(err);
+					}
+				},
+			});
+		});
+	}
+
 	public async fetchDevices(): Promise<IAuthDevice[]> {
 		let currUser;
 
